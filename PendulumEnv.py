@@ -30,7 +30,7 @@ class Box():
         space.add(self.body, self.shape)
         self.color = color
     def moveX(self,offset):
-        self.body.position += (offset, 0)
+        self.body.velocity = (offset, 0)
     def draw(self):
         x, y = self.body.position
         pygame.draw.rect(display, self.color,(int(x-self.width/2) - xcamera, int(y- self.height/2) , self.width, self.height))
@@ -78,6 +78,15 @@ class PendulumEnv:
         v = self.action
         if dir == 0:
             dir = -1
+        angle = self.get_angle()
+        distance_from_x = 0
+        if angle < 90:
+            distance_from_x =  angle//18 + 5
+        elif angle < 270: 
+            distance_from_x = 15 - angle//18
+        elif angle > 270:
+            distance_from_x = angle//18 - 15
+        return alpha*dir + (1-alpha) * distance_from_x/10
         return alpha * dir + (1-alpha)*((40-np.abs(v))/40)
         """
         angle = int(self.get_angle()//18)
@@ -145,7 +154,7 @@ class PendulumEnv:
                 return (True, False)
             
         elif state[0] >= 14 and state[0] <= 15: 
-            self.box.color = (191, 64, 191)
+            self.box.color = (255, 0,0)
             self.timer = time.time()
             return (False, self.frame >= self.MAX_FRAME)
         else:
@@ -161,7 +170,7 @@ class PendulumEnv:
         return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
  
     def sample_cond(self, i):
-        return i == (self.EPISODES -1) or i == 2000
+        return i == (self.EPISODES -1)
     def train(self):
         global xcamera
         global ycamera
@@ -214,7 +223,7 @@ class PendulumEnv:
                     action = np.argmax(self.q_table[state[0],state[1],state[2]])
                 else:
                     action = np.random.randint(0, self.ACTION_NUM)
-                speed = action%(self.ACTION_NUM//2)
+                speed = action%(self.ACTION_NUM//2) * 17
                 if action > (self.ACTION_NUM//2):
                     speed = -speed
 
