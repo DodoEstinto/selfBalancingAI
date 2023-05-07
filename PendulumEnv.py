@@ -1,17 +1,18 @@
-import cv2
+#TODO:??? unused?
+#import cv2
 import numpy as np
 import time
-import pymunk               # Import pymunk..
+import pymunk               
 import pygame
 import json
-import sys
+#TODO:??? unused?
+#import sys
 
-
+#initialization of the environment
 pygame.init()
 file_name = 'q_table.json'
 pygame.display.set_caption(file_name)
 display = pygame.display.set_mode((1200,600))
-
 
 clock = pygame.time.Clock()
 space = pymunk.Space()
@@ -21,7 +22,40 @@ xcamera = 0
 ycamera = 300
 
 class Box():
+    '''
+    This class rappresent physical object, with a predetermined inizial position,size, density and color
+
+    Methods:
+    --------
+    MoveX(offset):
+        Moves the box of a given offset on the X axis.
+    draw():
+        Draws the box on the pygame window
+    '''
     def __init__ (self, x ,y,width,height,density = 1,  static=False, color =(0,0,0)):
+        '''
+        Create an istance of box.
+
+        Parameters:
+        ----------
+        x,y: float
+            initial position.
+        width: int
+            the width of the object. It must be positive.
+        height: int
+            the height of the object. It must be positive
+        density (optional): int
+            the density of the object. The default value is 1.
+        static (optional): boolean
+            decide if the body is code-driven(True) or physics-driven(False). The default value is False.
+        color (optional): tuple of size 3
+            the color of the object, rappresented in RGB notation. The default value is (0,0,0).
+
+        Returns:
+            Box
+                a box instance with the given values.
+        '''
+        #setup the attributes with the parameters
         if static:
             self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         else:
@@ -33,25 +67,71 @@ class Box():
         self.shape.density = density
         space.add(self.body, self.shape)
         self.color = color
+
     def moveX(self,offset):
+        '''
+        Moves the box of a given offset on the X axis.
+
+        Parameters:
+        ----------
+        offset: int
+            the given offset.
+        '''
         self.body.velocity = (offset, 0)
+
     def draw(self):
+        '''
+        Draws the box on the pygame window
+        '''
         x, y = self.body.position
         pygame.draw.rect(display, self.color,(int(x-self.width/2) - xcamera, int(y- self.height/2) , self.width, self.height))
 
 class String():
-    def __init__(self, body1, attachement):
+    '''
+    This class rappresent a black physical string that connect two bodies.
+    
+    Methods:
+    --------
+    draw():
+        Draws the box on the pygame window
+    '''
+    def __init__(self, body1, attachment):
+        '''
+        Create an instance of String that connect two bodies.
+
+        Parameters:
+        ----------
+        body1: body
+            the first body to connect.
+        attachment: body
+            the second body to connect.
+        
+        Returns:
+        --------
+        String
+            the string that connect the two bodies.
+        '''
         self.body1 = body1
-        self.body2 = attachement
+        self.body2 = attachment
         self.shape= pymunk.PinJoint(self.body1, self.body2)
         space.add(self.shape)
+
     def draw(self):
+        '''
+        Draws the box on the pygame window
+        '''
         x1, y1 = self.body1.position
         x2, y2 = self.body2.position
         pygame.draw.line(display,(0,0,0), (int(x1)-xcamera, int(y1)), (int(x2)-xcamera, int(y2)), 2)
 
 class PendulumEnv:
+    '''
+    TODO
+    '''
     def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DEACY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space):
+        '''
+        TODO
+        '''
         self.LEARNING_RATE = LEARNING_RATE
         self.DISCOUNT = DISCOUNT
         self.MAX_EPSILON = MAX_EPSILON
