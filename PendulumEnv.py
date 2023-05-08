@@ -10,6 +10,7 @@ import json
 
 #initialization of the environment
 pygame.init()
+#TODO:to remove, later.
 file_name = 'q_table.json'
 pygame.display.set_caption(file_name)
 display = pygame.display.set_mode((1200,600))
@@ -205,14 +206,15 @@ class PendulumEnv:
         self.EPISODES = EPISODES
         self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,self.ACTION_NUM= Q_TABLE_DIM
         print(self.ANGLE_SAMPLES,self.SPEED_SAMPLES, self.ACTION_NUM)
+
         if(Q_TABLE_FILE==None):
             self.q_table = np.zeros(Q_TABLE_DIM)
+            self.Q_TABLE_FILE="unknown.json"
+            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
         else:
-            self.q_table = self.load_q_table(Q_TABLE_FILE,Q_TABLE_DIM)
-            """
-            if(self.q_table.shape != Q_TABLE_DIM):
-                print("[WARNING] The table loaded has not the expected shape")
-            """
+            self.Q_TABLE_FILE=Q_TABLE_FILE
+            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
+            self.q_table = self.load_q_table(self.Q_TABLE_FILE,Q_TABLE_DIM)
             
         self.base = base
         self.box = box
@@ -435,6 +437,7 @@ class PendulumEnv:
         global xcamera
         global ycamera
         cmd_t = 0
+        input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
             #remove the last episode objects, if present.
             space.remove(self.base.shape, self.base.body)
@@ -471,7 +474,8 @@ class PendulumEnv:
                 line = cmd.readline()
                 if line: 
                     if line == 'save' and not(cmd_t == 1):
-                        self.save_q_table(file_name)
+                        #self.save_q_table(file_name)
+                        self.save_q_table(self.Q_TABLE_FILE)
                         cmd_t = 1
                     if line == 'exit':
                         cmd_t= 2
@@ -518,7 +522,7 @@ class PendulumEnv:
                 successes += 1
             print("SUCCESS RATE: ", successes/(episode+1))
 
-        self.save_q_table(file_name)
+        self.save_q_table()
 
     def save_q_table(self, file):
         '''
@@ -552,18 +556,25 @@ class PendulumEnv:
         shape:
             the expected shape of the table in the save file.
         '''
-        q_list =[]
-        with open(file,'r') as f:
-            q_list = json.load(f)
-        ind = 0
         q_table = np.zeros(shape)
-        x,y,z,d = shape
-        for i in range(x):
-            for j in range(y):
-                for q in range(z):
-                    for w in range(d):
-                        q_table[i][j][q][w] = q_list[ind]
-                        ind += 1
+        
+        try:
+            q_list =[]
+            f=open(file,'r')
+            q_list = json.load(f)
+            ind = 0
+            x,y,z,d = shape
+            for i in range(x):
+                for j in range(y):
+                    for q in range(z):
+                        for w in range(d):
+                            q_table[i][j][q][w] = q_list[ind]
+                            ind += 1
+            f.close()
+            print("[INFO]\t File loaded with success")
+        except FileNotFoundError:
+            print("[ERROR]\t File not found, using an empty table")
+
         return q_table
     def simulate(self):
         '''
@@ -618,7 +629,7 @@ class PendulumEnv:
 
 if __name__ == "__main__":
     base = Box(600,300, 100, 10, static=True)
-    box = Box(550,50, 50, 50, color=(191, 64, 191))
+    box = Box(550,550, 50, 50, color=(191, 64, 191))
     string = String(base.body, box.body)
     env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=10000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="q_table.json")
     env.simulate()
