@@ -30,8 +30,7 @@ class Wind():
 
     def blow(self):
         if(np.random.random()<self.changeability):
-            blowForce=np.random.normal(0,self.constancy)
-            self.wind=blowForce*self.force
+            self.wind=np.random.randint(-self.force,self.force)
     
 class Box():
     '''
@@ -458,6 +457,7 @@ class PendulumEnv:
         global xcamera
         global ycamera
         cmd_t = 0
+        successes = 0
         input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
             
@@ -472,7 +472,6 @@ class PendulumEnv:
             truncated = False
             xcamera = 0
             ycamera = 300
-            successes = 0
             
             '''
             The state has the format: (angle,velocity,direction)
