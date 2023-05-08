@@ -22,15 +22,16 @@ ycamera = 300
 
 class Wind():
     
-    def __init__(self,force,constancy,changeability=0.01):
-        self.force=force
+    def __init__(self,base_force=300,force_variance=200,constancy=1,changeability=0.01):
+        self.base_force=base_force
+        self.force_variance=force_variance
         self.constancy=constancy
         self.wind=0
         self.changeability=changeability
 
     def blow(self):
         if(np.random.random()<self.changeability):
-            self.wind=np.random.randint(-self.force,self.force)
+            self.wind=np.sign(np.random.random()*2-1)*(self.base_force+np.random.randint(0,self.force_variance))
     
 class Box():
     '''
@@ -229,7 +230,7 @@ class PendulumEnv:
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
-        self.wind=Wind(300,0.4,changeability=0.005)
+        self.wind=Wind(base_force=3000,force_variance=2000,changeability=0.008)
         self.tick=0
         self.is_train = is_train
         self.set_reward_param()
@@ -359,7 +360,7 @@ class PendulumEnv:
         int
             A discretized velocity
         '''
-        MAX_VEL = 620
+        MAX_VEL = 1220
         discrete_v = min(velocity, MAX_VEL)
         if discrete_v <= 10:
             return int(discrete_v)
@@ -427,9 +428,7 @@ class PendulumEnv:
         self.prev_pos = self.box.body.position
         self.action = action
         self.base.moveX(action)
-        #self.box.moveX(wind)
-        self.box.body.apply_impulse_at_world_point([wind,0],self.box.body.position)
-        pymunk
+        self.box.body.apply_force_at_world_point([wind,0],self.box.body.position) 
         #TODO:???
         self.space.step(1/FPS)
         return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
@@ -636,13 +635,19 @@ class PendulumEnv:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-        txt = pygame.font.SysFont("Arial", 30).render(str(time.time()- self.timer)[:3], True, (0,0,0))
+        txt = pygame.font.SysFont("Arial", 15).render(str(time.time()- self.timer)[:3], True, (0,0,0))
         
         display.fill((255,255,255))
-        display.blit(txt, (30, 30))
+        display.blit(txt, (30, 15))
     
-        txt = pygame.font.SysFont("Arial", 30).render(str(self.wind.wind)[:4], True, (0,0,0))
-        display.blit(txt, (60, 60))
+        txt = pygame.font.SysFont("Arial", 15).render("Wind: "+str(self.wind.wind)[:7], True, (0,0,0))
+        display.blit(txt, (30, 30))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Reward: "+str(self.get_reward())[:5], True, (0,0,0))
+        display.blit(txt, (30, 45))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Cube speed: "+str(self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity))), True, (0,0,0))
+        display.blit(txt, (30, 60))
 
         self.base.draw()
         self.box.draw()
@@ -662,8 +667,10 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="unknown.json"
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (40, 39, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    Q_TABLE_FILE ="q_table.json"
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
+                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
     env.set_reward_param()
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
