@@ -175,7 +175,7 @@ class PendulumEnv:
         render():
             Render the environment in his current state.
     '''
-    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space,Q_TABLE_FILE=None, TICK_LIMIT = 1500):
+    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space,Q_TABLE_FILE=None, TICK_LIMIT = 300):
         '''
         Create an instance of PendulumEnv.
 
@@ -239,7 +239,7 @@ class PendulumEnv:
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
-        self.wind=Wind(50,1)
+        self.wind=Wind(300,0.4,changeability=0.005)
         self.tick=0
     def get_epsilon(self,alpha):
         '''
@@ -265,7 +265,7 @@ class PendulumEnv:
         float
             The reward
         '''
-        alpha = 0.8
+        alpha = 0.7
         beta = 1-alpha
         angle = self.get_angle()
         return alpha* np.sin(angle) + beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37
@@ -432,7 +432,9 @@ class PendulumEnv:
         self.prev_pos = self.box.body.position
         self.action = action
         self.base.moveX(action)
-        self.box.moveX(wind)
+        #self.box.moveX(wind)
+        self.box.body.apply_impulse_at_world_point([wind,0],self.box.body.position)
+        pymunk
         #TODO:???
         self.space.step(1/FPS)
         return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
@@ -661,7 +663,7 @@ if __name__ == "__main__":
     base = Box(600,300, 100, 10, static=True)
     box = Box(550,550, 50, 50, color=(191, 64, 191))
     string = String(base.body, box.body)
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=100000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="q_table.json")
-    env.simulate()
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (40, 39, 2, 80),EPISODES=100000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="test40angles.json")
+    env.train()
     #floor = Box (300, 350, 800,10, static=True)
     
