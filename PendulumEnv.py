@@ -22,6 +22,19 @@ FPS = 50
 xcamera = 0
 ycamera = 300
 
+class Wind():
+    
+    def __init__(self,force,constancy,changeability=0.01):
+        self.force=force
+        self.constancy=constancy
+        self.wind=0
+        self.changeability=changeability
+
+    def blow(self):
+        if(np.random.random()<self.changeability):
+            blowForce=np.random.normal(0,self.constancy)
+            self.wind=blowForce*self.force
+    
 class Box():
     '''
     This class rappresent physical object, with a predetermined inizial position,size, density and color
@@ -225,7 +238,7 @@ class PendulumEnv:
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
-
+        self.wind=Wind(50,1)
     def get_epsilon(self,alpha):
         '''
         Returns the epsilon, or the "randomness" based on the given alpha and
@@ -400,7 +413,7 @@ class PendulumEnv:
             self.box.color = (191, 64, 191)
         return (False, False) 
 
-    def step(self,action):
+    def step(self,action,wind=0):
         '''
         Compute a step, or frame, with the given action taken.
         
@@ -416,7 +429,8 @@ class PendulumEnv:
         '''
         self.prev_pos = self.box.body.position
         self.action = action
-        self.base.moveX(action) 
+        self.base.moveX(action)
+        self.box.moveX(wind)
         #TODO:???
         self.space.step(1/FPS)
         return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
@@ -483,6 +497,7 @@ class PendulumEnv:
                     if line == 'save' and not(cmd_t == 1):
                         #self.save_q_table(file_name)
                         self.save_q_table(self.Q_TABLE_FILE)
+                        input("Saved. Press enter to continue")
                         cmd_t = 1
                     if line == 'exit':
                         cmd_t= 2
@@ -608,7 +623,8 @@ class PendulumEnv:
             speed = action%(self.ACTION_NUM//2)*17
             if action > (self.ACTION_NUM//2):
                 speed = -speed
-            _,new_state, _, truncated = self.step(speed)
+            self.wind.blow()
+            _,new_state, _, truncated = self.step(speed,self.wind.wind)
             self.render()
             state = new_state
 
@@ -624,6 +640,10 @@ class PendulumEnv:
         
         display.fill((255,255,255))
         display.blit(txt, (30, 30))
+    
+        txt = pygame.font.SysFont("Arial", 30).render(str(self.wind.wind)[:4], True, (0,0,0))
+        display.blit(txt, (60, 60))
+
         self.base.draw()
         self.box.draw()
         self.string.draw()
