@@ -10,7 +10,8 @@ import json
 
 #initialization of the environment
 pygame.init()
-file_name = 'q_table_alpha_0.json'
+#TODO:to remove, later.
+file_name = 'q_table.json'
 pygame.display.set_caption(file_name)
 display = pygame.display.set_mode((1200,600))
 
@@ -206,7 +207,7 @@ class PendulumEnv:
             the space of pyGame.
         Q_TABLE_FILE(optional): string
             the path where load or save the QTable.
-            If empty, it will create a new QTable and will save as q_table.json
+            If empty or invalid, it will create a new QTable and will save as unknow.json
         
         '''
 
@@ -216,32 +217,30 @@ class PendulumEnv:
         self.MIN_EPSILON = MIN_EPSILON
         self.DECAY_RATE = DECAY_RATE
         self.EPISODES = EPISODES
-        self.TICK_LIMIT = TICK_LIMIT
         self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,self.ACTION_NUM= Q_TABLE_DIM
-
         print(self.ANGLE_SAMPLES,self.SPEED_SAMPLES, self.ACTION_NUM)
 
         if(Q_TABLE_FILE==None):
             self.q_table = np.zeros(Q_TABLE_DIM)
+            self.Q_TABLE_FILE="unknown.json"
+            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
         else:
-            self.q_table = self.load_q_table(Q_TABLE_FILE,Q_TABLE_DIM)
-            """
-            if(self.q_table.shape != Q_TABLE_DIM):
-                print("[WARNING] The table loaded has not the expected shape")
-            """
+            self.Q_TABLE_FILE=Q_TABLE_FILE
+            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
+            self.q_table = self.load_q_table(self.Q_TABLE_FILE,Q_TABLE_DIM)
             
         self.base = base
         self.box = box
         self.string = string
         self.prev_pos = [0,0]
         self.timer = 0
+        self.TICK_LIMIT = TICK_LIMIT
+        self.frame_count = 0
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
-
         self.wind=Wind(50,1)
-        self.tick = 0
-
+        self.tick=0
     def get_epsilon(self,alpha):
         '''
         Returns the epsilon, or the "randomness" based on the given alpha and
@@ -266,7 +265,7 @@ class PendulumEnv:
         float
             The reward
         '''
-        alpha = 0
+        alpha = 0.8
         beta = 1-alpha
         angle = self.get_angle()
         return alpha* np.sin(angle) + beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37
@@ -398,15 +397,21 @@ class PendulumEnv:
         #if the box is the right spot (it's vertical)
         if state[0] >= (89//(360/self.ANGLE_SAMPLES)) and state[0] <= (91//(360/self.ANGLE_SAMPLES)):
             self.box.color = (0,255,0)
-            if (time.time()-self.timer) > 10:
+            self.frame_count+=1
+            #print(self.frame_count,10*FPS,FPS)     
+            #if (time.time()-self.timer) > 10:
+            #second to frame conversion
+            if( self.frame_count > 20*FPS):
                 return (True, False)
         #box fallen. Truncate
         elif state[0] >= (269//(360/self.ANGLE_SAMPLES)) and state[0] <= (271//(360/self.ANGLE_SAMPLES)): 
             self.box.color = (255, 0,0)
             self.timer = time.time()
-            return False,(True)#self.tick > self.TICK_LIMIT)
+            self.frame_count=0
+            return False,(self.tick > self.TICK_LIMIT)
         else:
             self.timer = time.time()
+            self.frame_count=0
             self.box.color = (191, 64, 191)
         return (False, False) 
 
@@ -455,6 +460,7 @@ class PendulumEnv:
         global xcamera
         global ycamera
         cmd_t = 0
+        input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
             #remove the last episode objects, if present.
             space.remove(self.base.shape, self.base.body)
@@ -463,10 +469,9 @@ class PendulumEnv:
             
             #generate the new objects.
             self.base= Box(600,300, 100, 10, static=True)
-            self.box = Box(600,100, 50, 50, color=(191, 64, 191))
+            self.box = Box(580,100, 50, 50, color=(191, 64, 191))
             self.string = String(self.base.body, self.box.body)
             self.tick = 0
-
             
             done = False
             render = False
@@ -474,7 +479,7 @@ class PendulumEnv:
             xcamera = 0
             ycamera = 300
             successes = 0
-
+            
             '''
             The state has the format: (angle,velocity,direction)
             '''
@@ -492,11 +497,9 @@ class PendulumEnv:
                 line = cmd.readline()
                 if line: 
                     if line == 'save' and not(cmd_t == 1):
-                      
                         #self.save_q_table(file_name)
                         self.save_q_table(self.Q_TABLE_FILE)
                         input("Saved. Press enter to continue")
-
                         cmd_t = 1
                     if line == 'exit':
                         cmd_t= 2
@@ -539,12 +542,12 @@ class PendulumEnv:
                 
                 self.q_table[state[0],state[1],state[2]][action] = new_q
                 state = new_state
-                self.tick += 1
+                self.tick+=1
             if done:
                 successes += 1
             print("SUCCESS RATE: ", successes/(episode+1))
 
-        self.save_q_table(file_name)
+        self.save_q_table(self.Q_TABLE_FILE)
 
     def save_q_table(self, file):
         '''
@@ -578,18 +581,25 @@ class PendulumEnv:
         shape:
             the expected shape of the table in the save file.
         '''
-        q_list =[]
-        with open(file,'r') as f:
-            q_list = json.load(f)
-        ind = 0
         q_table = np.zeros(shape)
-        x,y,z,d = shape
-        for i in range(x):
-            for j in range(y):
-                for q in range(z):
-                    for w in range(d):
-                        q_table[i][j][q][w] = q_list[ind]
-                        ind += 1
+        
+        try:
+            q_list =[]
+            f=open(file,'r')
+            q_list = json.load(f)
+            ind = 0
+            x,y,z,d = shape
+            for i in range(x):
+                for j in range(y):
+                    for q in range(z):
+                        for w in range(d):
+                            q_table[i][j][q][w] = q_list[ind]
+                            ind += 1
+            f.close()
+            print("[INFO]\t File loaded with success")
+        except FileNotFoundError:
+            print("[ERROR]\t File not found, using an empty table")
+
         return q_table
     def simulate(self):
         '''
@@ -601,7 +611,7 @@ class PendulumEnv:
         space.remove(self.string.shape)
 
         self.base= Box(600,300, 100, 10, static=True)
-        self.box = Box(600,100, 50, 50, color=(191, 64, 191))
+        self.box = Box(580,100, 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
 
         #self.q_table = self.load_q_table(file_name,self.q_table.shape)
@@ -612,7 +622,6 @@ class PendulumEnv:
 
         self.timer = time.time()
         while  not truncated:
-
             action = np.argmax(self.q_table[state[0],state[1],state[2]])
             speed = action%(self.ACTION_NUM//2)*17
             if action > (self.ACTION_NUM//2):
@@ -650,9 +659,9 @@ class PendulumEnv:
 
 if __name__ == "__main__":
     base = Box(600,300, 100, 10, static=True)
-    box = Box(550,100, 50, 50, color=(191, 64, 191))
+    box = Box(550,550, 50, 50, color=(191, 64, 191))
     string = String(base.body, box.body)
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=10000, base=base, box= box, string=string,space=space, Q_TABLE_FILE='q_table_alpha_0.json')
-    env.train()
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=100000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="q_table.json")
+    env.simulate()
     #floor = Box (300, 350, 800,10, static=True)
     
