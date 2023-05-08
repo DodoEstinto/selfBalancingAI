@@ -10,9 +10,7 @@ import json
 
 #initialization of the environment
 pygame.init()
-#TODO:to remove, later.
-file_name = 'q_table.json'
-pygame.display.set_caption(file_name)
+
 display = pygame.display.set_mode((1200,600))
 
 clock = pygame.time.Clock()
@@ -175,7 +173,7 @@ class PendulumEnv:
         render():
             Render the environment in his current state.
     '''
-    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space,Q_TABLE_FILE=None, TICK_LIMIT = 300):
+    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX,space,Q_TABLE_FILE, TICK_LIMIT = 300, is_train = False):
         '''
         Create an instance of PendulumEnv.
 
@@ -210,7 +208,8 @@ class PendulumEnv:
             If empty or invalid, it will create a new QTable and will save as unknow.json
         
         '''
-
+        self.START_BASE = START_BASE
+        self.START_BOX = START_BOX
         self.LEARNING_RATE = LEARNING_RATE
         self.DISCOUNT = DISCOUNT
         self.MAX_EPSILON = MAX_EPSILON
@@ -220,18 +219,10 @@ class PendulumEnv:
         self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,self.ACTION_NUM= Q_TABLE_DIM
         print(self.ANGLE_SAMPLES,self.SPEED_SAMPLES, self.ACTION_NUM)
 
-        if(Q_TABLE_FILE==None):
-            self.q_table = np.zeros(Q_TABLE_DIM)
-            self.Q_TABLE_FILE="unknown.json"
-            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
-        else:
-            self.Q_TABLE_FILE=Q_TABLE_FILE
-            print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
-            self.q_table = self.load_q_table(self.Q_TABLE_FILE,Q_TABLE_DIM)
+        self.Q_TABLE_FILE = Q_TABLE_FILE
+        self.q_table = np.zeros(Q_TABLE_DIM)
+        print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
             
-        self.base = base
-        self.box = box
-        self.string = string
         self.prev_pos = [0,0]
         self.timer = 0
         self.TICK_LIMIT = TICK_LIMIT
@@ -241,6 +232,9 @@ class PendulumEnv:
         self.action = 0
         self.wind=Wind(300,0.4,changeability=0.005)
         self.tick=0
+        self.is_train = is_train
+        self.set_reward_param()
+
     def get_epsilon(self,alpha):
         '''
         Returns the epsilon, or the "randomness" based on the given alpha and
@@ -253,7 +247,11 @@ class PendulumEnv:
         '''
         r = max((self.EPISODES- alpha)/self.EPISODES, 0)
         return (self.MAX_EPSILON - self.MIN_EPSILON)*r+self.MIN_EPSILON
-    
+
+    def set_reward_param(self, alpha = 0.8, beta = 0.2):
+        self.alpha = alpha
+        self.beta = beta
+
     def get_reward(self):
         '''
         Returns the reward based on the current state.
@@ -265,10 +263,8 @@ class PendulumEnv:
         float
             The reward
         '''
-        alpha = 0.7
-        beta = 1-alpha
         angle = self.get_angle()
-        return alpha* np.sin(angle) + beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37
+        return self.alpha* np.sin(np.deg2rad(angle)) + np.sin(np.deg2rad(angle)) *self.beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37
 
     def UP_or_DOWN(self):
         '''
@@ -464,14 +460,10 @@ class PendulumEnv:
         cmd_t = 0
         input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
-            #remove the last episode objects, if present.
-            space.remove(self.base.shape, self.base.body)
-            space.remove(self.box.shape, self.box.body)
-            space.remove(self.string.shape)
             
             #generate the new objects.
-            self.base= Box(600,300, 100, 10, static=True)
-            self.box = Box(580,100, 50, 50, color=(191, 64, 191))
+            self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
+            self.box = Box(self.START_BOX[0],self.START_BOX[1], 50, 50, color=(191, 64, 191))
             self.string = String(self.base.body, self.box.body)
             self.tick = 0
             
@@ -499,7 +491,6 @@ class PendulumEnv:
                 line = cmd.readline()
                 if line: 
                     if line == 'save' and not(cmd_t == 1):
-                        #self.save_q_table(file_name)
                         self.save_q_table(self.Q_TABLE_FILE)
                         input("Saved. Press enter to continue")
                         cmd_t = 1
@@ -547,6 +538,11 @@ class PendulumEnv:
                 self.tick+=1
             if done:
                 successes += 1
+            
+            #remove the last episode objects, if present.
+            space.remove(self.base.shape, self.base.body)
+            space.remove(self.box.shape, self.box.body)
+            space.remove(self.string.shape)
             print("SUCCESS RATE: ", successes/(episode+1))
 
         self.save_q_table(self.Q_TABLE_FILE)
@@ -560,7 +556,6 @@ class PendulumEnv:
         file:
             the path of the save file.
         '''
-
         with open(file,'w') as f:
             tosave =[]
             x,y,z,d = self.q_table.shape
@@ -587,7 +582,7 @@ class PendulumEnv:
         
         try:
             q_list =[]
-            f=open(file,'r')
+            f=open(file,"r")
             q_list = json.load(f)
             ind = 0
             x,y,z,d = shape
@@ -608,15 +603,12 @@ class PendulumEnv:
         Starts the simulation.
         '''
         input("START")
-        space.remove(self.base.shape, self.base.body)
-        space.remove(self.box.shape, self.box.body)
-        space.remove(self.string.shape)
 
-        self.base= Box(600,300, 100, 10, static=True)
-        self.box = Box(580,100, 50, 50, color=(191, 64, 191))
+        self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
+        self.box = Box(self.START_BOX[0],self.START_BOX[1], 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
 
-        #self.q_table = self.load_q_table(file_name,self.q_table.shape)
+        self.q_table = self.load_q_table(self.Q_TABLE_FILE,self.q_table.shape)
         state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,0)
         truncated = False
 
@@ -629,10 +621,14 @@ class PendulumEnv:
             if action > (self.ACTION_NUM//2):
                 speed = -speed
             self.wind.blow()
-            _,new_state, _, truncated = self.step(speed,self.wind.wind)
+            _,new_state, _, truncated = self.step(speed)
             self.render()
             state = new_state
-
+    def execEnv(self):
+        if self.is_train:
+            self.train()
+        else:
+            self.simulate()
     def render(self):
         '''
         Render the environment in his current state.
@@ -658,12 +654,18 @@ class PendulumEnv:
             xcamera -= 1200
         pygame.display.update()
         clock.tick(FPS)
+"""
+Instruction for use:
+    - To execute for training set is_train to True in the initialization of the environment, False for simulate;
+    - In any case is necessary specify the file name on which save the table (variable Q_TABLE_FILE);
+    - To set reward parameters (alpha, beta) use the set_reward_param functionp 
+"""
+
 
 if __name__ == "__main__":
-    base = Box(600,300, 100, 10, static=True)
-    box = Box(550,550, 50, 50, color=(191, 64, 191))
-    string = String(base.body, box.body)
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (40, 39, 2, 80),EPISODES=100000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="test40angles.json")
-    env.train()
-    #floor = Box (300, 350, 800,10, static=True)
+    Q_TABLE_FILE ="unknown.json"
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (40, 39, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    env.set_reward_param()
+    pygame.display.set_caption(Q_TABLE_FILE)
+    env.execEnv()
     
