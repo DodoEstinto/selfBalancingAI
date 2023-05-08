@@ -156,12 +156,12 @@ class PendulumEnv:
             Simulate the model.
         save_q_table(file):
             Saves the actual qTable in a file.
-        load_q_table(file):
+        load_q_table(file,shape):
             Load the qTable from a save file.
         render():
             Render the environment in his current state.
     '''
-    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space):
+    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES,  base, box, string,space,Q_TABLE_FILE=None):
         '''
         Create an instance of PendulumEnv.
 
@@ -191,9 +191,12 @@ class PendulumEnv:
             the string that connect che base and the box.
         space: ???
             the space of pyGame.
+        Q_TABLE_FILE(optional): string
+            the path where load or save the QTable.
+            If empty, it will create a new QTable and will save as q_table.json
         
         '''
-        
+
         self.LEARNING_RATE = LEARNING_RATE
         self.DISCOUNT = DISCOUNT
         self.MAX_EPSILON = MAX_EPSILON
@@ -202,7 +205,15 @@ class PendulumEnv:
         self.EPISODES = EPISODES
         self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,self.ACTION_NUM= Q_TABLE_DIM
         print(self.ANGLE_SAMPLES,self.SPEED_SAMPLES, self.ACTION_NUM)
-        self.q_table = np.zeros(Q_TABLE_DIM)
+        if(Q_TABLE_FILE==None):
+            self.q_table = np.zeros(Q_TABLE_DIM)
+        else:
+            self.q_table = self.load_q_table(Q_TABLE_FILE,Q_TABLE_DIM)
+            """
+            if(self.q_table.shape != Q_TABLE_DIM):
+                print("[WARNING] The table loaded has not the expected shape")
+            """
+            
         self.base = base
         self.box = box
         self.string = string
@@ -530,7 +541,7 @@ class PendulumEnv:
             json.dump(tosave, f)
         print('Q_TABLE SAVED.')
 
-    def load_q_table(self, file):
+    def load_q_table(self, file, shape):
         '''
         Load the qTable from a save file
 
@@ -538,13 +549,15 @@ class PendulumEnv:
         ----------
         file:
             the path of the save file.
+        shape:
+            the expected shape of the table in the save file.
         '''
         q_list =[]
         with open(file,'r') as f:
             q_list = json.load(f)
         ind = 0
-        q_table = np.zeros(self.q_table.shape)
-        x,y,z,d = self.q_table.shape
+        q_table = np.zeros(shape)
+        x,y,z,d = shape
         for i in range(x):
             for j in range(y):
                 for q in range(z):
@@ -565,7 +578,7 @@ class PendulumEnv:
         self.box = Box(580,100, 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
 
-        self.q_table = self.load_q_table(file_name)
+        #self.q_table = self.load_q_table(file_name,self.q_table.shape)
         state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,0)
         truncated = False
 
@@ -607,7 +620,7 @@ if __name__ == "__main__":
     base = Box(600,300, 100, 10, static=True)
     box = Box(550,50, 50, 50, color=(191, 64, 191))
     string = String(base.body, box.body)
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DEACY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=10000, base=base, box= box, string=string,space=space)
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=10000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="q_table.json")
     env.simulate()
     #floor = Box (300, 350, 800,10, static=True)
     
