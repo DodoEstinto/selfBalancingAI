@@ -194,7 +194,7 @@ class PendulumEnv:
             the space of pyGame.
         Q_TABLE_FILE(optional): string
             the path where load or save the QTable.
-            If empty, it will create a new QTable and will save as q_table.json
+            If empty or invalid, it will create a new QTable and will save as unknow.json
         
         '''
 
@@ -221,6 +221,7 @@ class PendulumEnv:
         self.string = string
         self.prev_pos = [0,0]
         self.timer = 0
+        self.frame_count = 0
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
@@ -381,15 +382,21 @@ class PendulumEnv:
         #if the box is the right spot (it's vertical)
         if state[0] >= (89//(360/self.ANGLE_SAMPLES)) and state[0] <= (91//(360/self.ANGLE_SAMPLES)):
             self.box.color = (0,255,0)
-            if (time.time()-self.timer) > 10:
+            self.frame_count+=1
+            #print(self.frame_count,10*FPS,FPS)     
+            #if (time.time()-self.timer) > 10:
+            #second to frame conversion
+            if( self.frame_count > 20*FPS):
                 return (True, False)
         #box fallen. Truncate
         elif state[0] >= (269//(360/self.ANGLE_SAMPLES)) and state[0] <= (271//(360/self.ANGLE_SAMPLES)): 
             self.box.color = (255, 0,0)
             self.timer = time.time()
+            self.frame_count=0
             return False,True
         else:
             self.timer = time.time()
+            self.frame_count=0
             self.box.color = (191, 64, 191)
         return (False, False) 
 
@@ -522,7 +529,7 @@ class PendulumEnv:
                 successes += 1
             print("SUCCESS RATE: ", successes/(episode+1))
 
-        self.save_q_table()
+        self.save_q_table(self.Q_TABLE_FILE)
 
     def save_q_table(self, file):
         '''
@@ -631,7 +638,7 @@ if __name__ == "__main__":
     base = Box(600,300, 100, 10, static=True)
     box = Box(550,550, 50, 50, color=(191, 64, 191))
     string = String(base.body, box.body)
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=10000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="q_table.json")
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, Q_TABLE_DIM = (20, 39, 2, 80),EPISODES=100000, base=base, box= box, string=string,space=space,Q_TABLE_FILE="giggi.json")
     env.simulate()
     #floor = Box (300, 350, 800,10, static=True)
     
