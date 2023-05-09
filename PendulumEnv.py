@@ -294,7 +294,7 @@ class PendulumEnv:
         #TODO:??? Tra verticale sotto e verticale sopra non dovrebbero esserci 180 gradi di differenza?
         if xbase == xbox:
             if ybox-ybase > 0:
-                return 227
+                return 270
             else:
                 return 90
         #TODO:??? Perchè negare la divisione se poi fai abs?
