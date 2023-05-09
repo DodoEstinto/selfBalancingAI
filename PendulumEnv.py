@@ -360,7 +360,7 @@ class PendulumEnv:
         int
             A discretized velocity
         '''
-        MAX_VEL = 1620
+        MAX_VEL = 1420
         discrete_v = min(velocity, MAX_VEL)
         if discrete_v <= 10:
             return int(discrete_v)
@@ -368,12 +368,8 @@ class PendulumEnv:
             return int(11 +  (discrete_v-10)//5)
         elif discrete_v <= 100:
             return int(17 + (discrete_v-40)//10)
-        elif discrete_v <= 220:
-            return int(23 + (discrete_v-100)//20)
-        elif discrete_v <= 420:
-            return int(28 + (discrete_v-220)//40)
         else:
-            return int(33 + (discrete_v-420)//60)
+            return int(23 + (discrete_v-100)//20)
 
     def episode_status(self):
         '''
@@ -675,10 +671,10 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="40_54_2_80.json"
+    Q_TABLE_FILE ="40_90_2_80.json"
     env = PendulumEnv(LEARNING_RATE = 0.2, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
-                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=200000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+                      Q_TABLE_DIM = (40, 90, 2, 80),EPISODES=200000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
     env.set_reward_param(0.7, 0.3)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
