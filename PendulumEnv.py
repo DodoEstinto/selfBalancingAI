@@ -173,7 +173,7 @@ class PendulumEnv:
         render():
             Render the environment in his current state.
     '''
-    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX,space,Q_TABLE_FILE, TICK_LIMIT = 300, is_train = False):
+    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX,space,Q_TABLE_FILE, TICK_LIMIT = 800, is_train = False):
         '''
         Create an instance of PendulumEnv.
 
@@ -264,7 +264,7 @@ class PendulumEnv:
             The reward
         '''
         angle = self.get_angle()
-        return self.alpha* np.sin(np.deg2rad(angle)) + np.sin(np.deg2rad(angle)) *self.beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37
+        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* ((self.SPEED_SAMPLES-1)-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
 
     def UP_or_DOWN(self):
         '''
@@ -677,9 +677,9 @@ Instruction for use:
 if __name__ == "__main__":
     Q_TABLE_FILE ="40_54_2_80.json"
     env = PendulumEnv(LEARNING_RATE = 0.2, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
-                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
-    env.set_reward_param()
+                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=200000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    env.set_reward_param(0.7, 0.3)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
     
