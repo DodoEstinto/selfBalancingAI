@@ -448,11 +448,19 @@ class PendulumEnv:
             if i is the last episodes
         '''
         return i == (self.EPISODES -1)
-
+    def write_on_log(self):
+        with open('log.txt', 'a') as log:
+            record = "<Q_TABLE: "+str(self.Q_TABLE_FILE) +", ANGLE_SAMPLES: "+str(self.ANGLE_SAMPLES)+", SPEED_SAMPLES: "+str(self.SPEED_SAMPLES)+", ACTION_NUM: "+str(self.ACTION_NUM)+", EPISODES: "\
+                +str(self.EPISODES) +", START_BASE: "+ str(self.START_BASE) +", START_BOX: "+ str(self.START_BOX) +", LEARNING_RATE: "+ str(self.LEARNING_RATE) +\
+                ", DISCOUNT: "+ str(self.DISCOUNT) + ", MAX_EPSILON: "+str(self.MAX_EPSILON)+ ", MIN_EPSILON: "+str(self.MIN_EPSILON) +", DECAY_RATE: "+ str(self.DECAY_RATE)\
+                    +", REWARD_ALPHA: " + str(self.alpha) + ", REWARD_BETA: "+ str(self.beta)+">\n"
+            log.write(record)
     def train(self):
         '''
         Train the model.
         '''
+        self.write_on_log()
+
         global xcamera
         global ycamera
         cmd_t = 0
@@ -668,9 +676,9 @@ Instruction for use:
 
 if __name__ == "__main__":
     Q_TABLE_FILE ="q_table.json"
-    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
+    env = PendulumEnv(LEARNING_RATE = 0.6, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
                       Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
     env.set_reward_param()
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
