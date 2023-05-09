@@ -230,7 +230,7 @@ class PendulumEnv:
         self.space = space
         self.space.gravity = (0, 1000)
         self.action = 0
-        self.wind=Wind(base_force=3000,force_variance=2000,changeability=0.008)
+        self.wind=Wind(base_force=100,force_variance=500,changeability=0.008)
         self.tick=0
         self.is_train = is_train
         self.set_reward_param()
@@ -360,7 +360,7 @@ class PendulumEnv:
         int
             A discretized velocity
         '''
-        MAX_VEL = 1220
+        MAX_VEL = 1620
         discrete_v = min(velocity, MAX_VEL)
         if discrete_v <= 10:
             return int(discrete_v)
@@ -373,7 +373,7 @@ class PendulumEnv:
         elif discrete_v <= 420:
             return int(28 + (discrete_v-220)//40)
         else:
-            return int(33 + (discrete_v-420)//40)
+            return int(33 + (discrete_v-420)//60)
 
     def episode_status(self):
         '''
@@ -428,7 +428,7 @@ class PendulumEnv:
         self.prev_pos = self.box.body.position
         self.action = action
         self.base.moveX(action)
-        self.box.body.apply_force_at_world_point([wind,0],self.box.body.position) 
+        self.box.body.apply_impulse_at_local_point([wind,0],(0,0)) 
         #TODO:???
         self.space.step(1/FPS)
         return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
@@ -670,15 +670,15 @@ class PendulumEnv:
 Instruction for use:
     - To execute for training set is_train to True in the initialization of the environment, False for simulate;
     - In any case is necessary specify the file name on which save the table (variable Q_TABLE_FILE);
-    - To set reward parameters (alpha, beta) use the set_reward_param functionp 
+    - To set reward parameters (alpha, beta) use the set_reward_param function 
 """
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="q_table.json"
-    env = PendulumEnv(LEARNING_RATE = 0.6, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
+    Q_TABLE_FILE ="40_54_2_80.json"
+    env = PendulumEnv(LEARNING_RATE = 0.2, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
                       Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=100000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
     env.set_reward_param()
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
