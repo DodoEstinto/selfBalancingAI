@@ -508,10 +508,17 @@ class PendulumEnv:
                         cmd_t = 4
                         print("EPISODE: ", episode)
                         print("SUCCESS RATE: ", successes/(episode+1))
+ 
                 else:
                     cmd_t = 0
                     
             self.timer = time.time()
+
+            #convergence debug
+            maxQChange=0
+            totalQChange=0
+            updates=0
+
             #training loop
             while not done and not truncated:
                 #check if has to do the best move given the actual table or a random move.
@@ -544,9 +551,21 @@ class PendulumEnv:
                 self.q_table[state[0],state[1],state[2]][action] = new_q
                 state = new_state
                 self.tick+=1
+
+                #convergence debug
+                updates+=1
+                currentQChange=np.abs(new_q-current_q)
+                totalQChange+=currentQChange
+                if(maxQChange<currentQChange):
+                    maxQChange=currentQChange
+
             if done:
                 successes += 1
             
+            #convergence debug
+            if(cmd_t==4):
+                print("Convergence debug: ",totalQChange/updates," || ",maxQChange)
+
             #remove the last episode objects, if present.
             space.remove(self.base.shape, self.base.body)
             space.remove(self.box.shape, self.box.body)
@@ -677,9 +696,9 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="new_reward_learning05.json"
+    Q_TABLE_FILE ="test.json"
     env = PendulumEnv(LEARNING_RATE = 0.5, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
-                      Q_TABLE_DIM = (40, 90, 2, 80),EPISODES=1000000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      Q_TABLE_DIM = (40, 90, 2, 80),EPISODES=5000000,START_BOX=(600, 500), START_BASE=(600, 300),
                       space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
     env.set_reward_param(0.6, 0.4)
     pygame.display.set_caption(Q_TABLE_FILE)
