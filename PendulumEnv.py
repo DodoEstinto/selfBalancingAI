@@ -264,6 +264,8 @@ class PendulumEnv:
             The reward
         '''
         angle = self.get_angle()
+        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* (50-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/50 *np.sin(np.deg2rad(angle))
+        #return self.alpha* np.sin(np.deg2rad(angle)) - np.sin(np.deg2rad(angle))*self.beta* (self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
         return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* ((self.SPEED_SAMPLES-1)-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
 
     def UP_or_DOWN(self):
@@ -483,7 +485,7 @@ class PendulumEnv:
             
             epsilon = self.get_epsilon(episode)
 
-            print("EPISODE: ", episode)
+            
             if self.sample_cond(episode):
                 input("Last episode")
             line = ''
@@ -502,6 +504,10 @@ class PendulumEnv:
                     if line == 'show':
                         cmd_t = 3
                         render = True
+                    if line == 'status':
+                        cmd_t = 4
+                        print("EPISODE: ", episode)
+                        print("SUCCESS RATE: ", successes/(episode+1))
                 else:
                     cmd_t = 0
                     
@@ -545,7 +551,7 @@ class PendulumEnv:
             space.remove(self.base.shape, self.base.body)
             space.remove(self.box.shape, self.box.body)
             space.remove(self.string.shape)
-            print("SUCCESS RATE: ", successes/(episode+1))
+            
 
         self.save_q_table(self.Q_TABLE_FILE)
 
@@ -671,11 +677,11 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="40_90_2_80.json"
-    env = PendulumEnv(LEARNING_RATE = 0.2, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
-                      Q_TABLE_DIM = (40, 90, 2, 80),EPISODES=200000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
-    env.set_reward_param(0.7, 0.3)
+    Q_TABLE_FILE ="new_reward_learning05.json"
+    env = PendulumEnv(LEARNING_RATE = 0.5, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
+                      Q_TABLE_DIM = (40, 90, 2, 80),EPISODES=1000000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    env.set_reward_param(0.6, 0.4)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
     
