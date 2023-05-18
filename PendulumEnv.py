@@ -249,6 +249,11 @@ class PendulumEnv:
         r = max((self.EPISODES- alpha)/self.EPISODES, 0)
         return (self.MAX_EPSILON - self.MIN_EPSILON)*r+self.MIN_EPSILON
 
+    def get_learning_rate(self,alpha):
+
+        r = max((self.EPISODES- alpha)/self.EPISODES, 0)
+        return (self.LEARNING_RATE - 0.05)*r+0.05
+    
     def set_reward_param(self, alpha = 0.8, beta = 0.2):
         self.alpha = alpha
         self.beta = beta
@@ -491,7 +496,7 @@ class PendulumEnv:
             state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,0)
             
             epsilon = self.get_epsilon(episode)
-
+            actualLR = self.get_learning_rate(episode)
             
             if self.sample_cond(episode):
                 input("Last episode")
@@ -515,6 +520,7 @@ class PendulumEnv:
                         cmd_t = 4
                         print("EPISODE: ", episode)
                         print("SUCCESS RATE: ", successes/(episode+1))
+                        print("ACTUAL LR: ", actualLR)
  
                 else:
                     cmd_t = 0
@@ -548,7 +554,7 @@ class PendulumEnv:
                 max_future_q = np.max(self.q_table[new_state[0],new_state[1],new_state[2]])
                 current_q = self.q_table[state[0]][state[1]][state[2]][action]
 
-                new_q = (1-self.LEARNING_RATE) * current_q + self.LEARNING_RATE * (reward + self.DISCOUNT * max_future_q)
+                new_q = (1-actualLR) * current_q + actualLR * (reward + self.DISCOUNT * max_future_q)
                 
                 self.q_table[state[0],state[1],state[2]][action] = new_q
                 state = new_state
@@ -690,10 +696,10 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test2.json"
-    env = PendulumEnv(LEARNING_RATE = 0.4, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
-                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=10000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
+    Q_TABLE_FILE ="test3.json"
+    env = PendulumEnv(LEARNING_RATE = 0.75, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, DECAY_RATE=0.005, 
+                      Q_TABLE_DIM = (40, 54, 2, 80),EPISODES=30000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
     env.set_reward_param(0.8, 0.2)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
