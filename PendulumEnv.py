@@ -690,10 +690,10 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test3.json"
-    env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.98, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
-                      Q_TABLE_DIM = (40, 19, 2, 20),EPISODES=20000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
+    Q_TABLE_FILE ="test.json"
+    env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
+                      Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=50000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
     env.set_reward_param(0.8, 0.2)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
