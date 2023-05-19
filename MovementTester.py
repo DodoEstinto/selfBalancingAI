@@ -407,18 +407,19 @@ class PendulumEnv:
         '''
         Starts the simulation.
         '''
-        input("START")
-
+        theta= np.random.random()*np.pi*2
+        
+        
+        xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
+        print(theta,xOff,yOff)
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-        self.box = Box(self.START_BOX[0],self.START_BOX[1], 50, 50, color=(191, 64, 191))
+        self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
         while True:
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.KEYDOWN:
-                    print("DENTRO!")
                     if event.key == pygame.K_LEFT:
-                        print("QUI!")
                        
                         self.base.moveX(50)
                     if event.key == pygame.K_RIGHT:

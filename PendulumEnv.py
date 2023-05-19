@@ -468,12 +468,12 @@ class PendulumEnv:
         successes = 0
         input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
-            realStart= self.START_BOX[1]
-            if(np.random.random()<0.65):
-                realStart= realStart-400
-            #generate the new objects.
+            theta= np.random.random()*np.pi*2
+        
+        
+            xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
             self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-            self.box = Box(self.START_BOX[0],realStart, 50, 50, color=(191, 64, 191))
+            self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
             self.string = String(self.base.body, self.box.body)
             self.tick = 0
             
@@ -623,10 +623,13 @@ class PendulumEnv:
         '''
         Starts the simulation.
         '''
-        input("START")
 
+        theta= np.random.random()*np.pi*2
+        
+        
+        xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-        self.box = Box(self.START_BOX[0],self.START_BOX[1], 50, 50, color=(191, 64, 191))
+        self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
 
         self.q_table = self.load_q_table(self.Q_TABLE_FILE,self.q_table.shape)
@@ -690,10 +693,10 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test.json"
+    Q_TABLE_FILE ="test3.json"
     env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
                       Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=50000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
     env.set_reward_param(0.8, 0.2)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
