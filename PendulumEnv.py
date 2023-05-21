@@ -266,7 +266,7 @@ class PendulumEnv:
             The reward
         '''
         angle = self.get_angle()
-        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* (37-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/37 *np.sin(np.deg2rad(angle))
+        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* (20-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/20
         #return self.alpha* np.sin(np.deg2rad(angle)) - np.sin(np.deg2rad(angle))*self.beta* (self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
         return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* ((self.SPEED_SAMPLES-1)-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
 
@@ -486,11 +486,11 @@ class PendulumEnv:
             '''
             The state has the format: (angle,velocity,direction)
             '''
-            state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,0)
+            state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,1)
             
             epsilon = self.get_epsilon(episode)**(1.7)
             #actualLR = self.get_learning_rate(episode)
-            actualLR=self.LEARNING_RATE
+            actualLR=self.LEARNING_RATE#1/(1+episode)**self.LEARNING_RATE
             if self.sample_cond(episode):
                 input("Last episode")
             line = ''
@@ -586,7 +586,7 @@ class PendulumEnv:
                         for w in range(d):
                             tosave.append(self.q_table[i][j][q][w])
             json.dump(tosave, f)
-        print('Q_TABLE SAVED.')
+        print('Q_TABLE SAVED ON '+ self.Q_TABLE_FILE)
 
     def load_q_table(self, file, shape):
         '''
@@ -629,11 +629,11 @@ class PendulumEnv:
         
         xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-        self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
+        self.box = Box(self.START_BASE[0],self.START_BASE[1]+200, 50, 50, color=(191, 64, 191))
         self.string = String(self.base.body, self.box.body)
 
         self.q_table = self.load_q_table(self.Q_TABLE_FILE,self.q_table.shape)
-        state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,0)
+        state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,1)
         truncated = False
 
         self.string = String(self.base.body, self.box.body)
@@ -693,11 +693,11 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test3.json"
+    Q_TABLE_FILE ="test.json"
     env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
-                      Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=50000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
-    env.set_reward_param(0.8, 0.2)
+                      Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=20000,START_BOX=(600, 500), START_BASE=(600, 300),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    env.set_reward_param(0.5, 0.5)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
     
