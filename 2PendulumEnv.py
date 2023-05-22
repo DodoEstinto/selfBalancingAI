@@ -1,10 +1,12 @@
-
+#TODO:??? unused?
+#import cv2
 import numpy as np
 import time
 import pymunk               
 import pygame
 import json
-
+#TODO:??? unused?
+#import sys
 
 #initialization of the environment
 pygame.init()
@@ -171,7 +173,7 @@ class PendulumEnv:
         render():
             Render the environment in his current state.
     '''
-    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX,space,Q_TABLE_FILE, TICK_LIMIT = 800, is_train = False):
+    def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, DECAY_RATE, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX1,START_BOX2,space,Q_TABLE_FILE, TICK_LIMIT = 800, is_train = False):
         '''
         Create an instance of PendulumEnv.
 
@@ -187,7 +189,8 @@ class PendulumEnv:
             max value of epsilon
         MIN_EPSILON: float
             min value of the epsilon.
-
+        DECAY_RATE: ???
+            TODO:??? Non ho capito a che serve, non lo usiamo.
         Q_TABLE_DIM: tuple
             the shape of the qTable.
         EPISODES: int
@@ -206,28 +209,30 @@ class PendulumEnv:
         
         '''
         self.START_BASE = START_BASE
-        self.START_BOX = START_BOX
+        self.START_BOX1 = START_BOX1
+        self.START_BOX2 = START_BOX2
         self.LEARNING_RATE = LEARNING_RATE
         self.DISCOUNT = DISCOUNT
         self.MAX_EPSILON = MAX_EPSILON
         self.MIN_EPSILON = MIN_EPSILON
+        self.DECAY_RATE = DECAY_RATE
         self.EPISODES = EPISODES
-        self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,self.ACTION_NUM= Q_TABLE_DIM
+        self.ANGLE_SAMPLES,self.SPEED_SAMPLES, _,_,_,_,self.ACTION_NUM= Q_TABLE_DIM
+        self.TICK_LIMIT = TICK_LIMIT
         print(self.ANGLE_SAMPLES,self.SPEED_SAMPLES, self.ACTION_NUM)
 
         self.Q_TABLE_FILE = Q_TABLE_FILE
         self.q_table = np.zeros(Q_TABLE_DIM)
         print("[INFO]\t File name set as: ",self.Q_TABLE_FILE)
             
-        self.prev_pos = [0,0]
+        self.prev_pos1 = START_BOX1
+        self.prev_pos2 = START_BOX2
         self.timer = 0
-        self.TICK_LIMIT = TICK_LIMIT
         self.frame_count = 0
         self.space = space
         self.space.gravity = (0, 1000)
-        self.space.damping=0.9
         self.action = 0
-        self.wind=Wind(base_force=0,force_variance=1,changeability=0.008)
+        self.wind=Wind(base_force=100,force_variance=500,changeability=0.008)
         self.tick=0
         self.is_train = is_train
         self.set_reward_param()
@@ -245,11 +250,6 @@ class PendulumEnv:
         r = max((self.EPISODES- alpha)/self.EPISODES, 0)
         return (self.MAX_EPSILON - self.MIN_EPSILON)*r+self.MIN_EPSILON
 
-    def get_learning_rate(self,alpha):
-
-        r = max((self.EPISODES- alpha)/self.EPISODES, 0)
-        return (self.LEARNING_RATE - 0.05)*r+0.05
-    
     def set_reward_param(self, alpha = 0.8, beta = 0.2):
         self.alpha = alpha
         self.beta = beta
@@ -265,12 +265,34 @@ class PendulumEnv:
         float
             The reward
         '''
-        angle = self.get_angle()
-        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* (20-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/20
+        #if the box is the right spot (it's vertical)
+        x = self.box1.body.position[0]
+        y = 600 -self.box2.body.position[1]
+        angle1 = self.get_angle(self.base.body.position,self.box1.body.position)
+        angle2 = self.get_angle(self.box1.body.position,self.box2.body.position)
+        dir = (self.UP_or_DOWN(self.box2.body.position,self.prev_pos2))
+        if dir == 0:
+            dir = -1
+        """
+        alive = 0
+        if angle2 >= 87 and angle2 <= 93:
+            alive = 10
+        return alive -0.01 * x*x + (y - 2)*(y-2)
+        return self.UP_or_DOWN(self.box2.body.position, self.prev_pos2) -1"""
+        return dir*np.exp((dir*-5* np.sqrt( self.alpha*np.power(np.cos(np.deg2rad(angle1)),(2) )+self.beta* np.power(np.cos(np.deg2rad(angle2)), (2)) ) ) )
+        dir  = self.UP_or_DOWN(self.box2.body.position,self.prev_pos2)
+        if dir == 0:
+            dir = -1
+        state = self.get_new_state()
+        if state[0] >= (181//(360/self.ANGLE_SAMPLES)) or state[3] >= (181//(360/self.ANGLE_SAMPLES)):
+            return -100
+        return - np.abs(self.beta*np.cos(np.deg2rad(angle2))) - np.abs(self.alpha*np.cos(np.deg2rad(angle1)))
+        #self.beta* (np.sin(np.deg2rad(angle1)) )+dir*self.alpha* np.abs(np.sin(np.deg2rad(angle2)))
+        #return self.alpha* np.sin(np.deg2rad(angle1)) +self.alpha* np.sin(np.deg2rad(angle2)) + self.beta* (50-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/50
         #return self.alpha* np.sin(np.deg2rad(angle)) - np.sin(np.deg2rad(angle))*self.beta* (self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
-        return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* ((self.SPEED_SAMPLES-1)-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
+        #return self.alpha* np.sin(np.deg2rad(angle)) + self.beta* ((self.SPEED_SAMPLES-1)-self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)))/(self.SPEED_SAMPLES-1)
 
-    def UP_or_DOWN(self):
+    def UP_or_DOWN(self, pos, pre_pos):
         '''
         Returns the direction of the box.
 
@@ -279,11 +301,11 @@ class PendulumEnv:
         int
             1 is it's going up, 0 otherwise
         '''
-        if self.box.body.position[1] > self.prev_pos[1]:
+        if pos[1] > pre_pos[1]:
             return 0 #DOWN
         return 1 #UP
         
-    def get_angle(self):
+    def get_angle(self, pos1, pos2):
         '''
         Get the current angle between the base and the box.
 
@@ -293,8 +315,8 @@ class PendulumEnv:
             the current angle
         '''
 
-        xbox, ybox = self.box.body.position
-        xbase, ybase = self.base.body.position
+        xbox, ybox = pos2
+        xbase, ybase = pos1
         #TODO:??? Tra verticale sotto e verticale sopra non dovrebbero esserci 180 gradi di differenza?
         if xbase == xbox:
             if ybox-ybase > 0:
@@ -304,7 +326,6 @@ class PendulumEnv:
         #TODO:??? Perchè negare la divisione se poi fai abs?
         #Get the slope of the string.
         mr = np.abs(-(ybox - ybase)/(xbox - xbase))
-
         def from_0_to_360(x, y, xo, yo, angle):
             '''
             TODO:???? Cosa rappresenta angle?
@@ -328,8 +349,10 @@ class PendulumEnv:
         tuple
             The new state in the form of (angle,velocity,direction)
         '''
-        angle = self.get_angle()
-        return int(angle//(360/self.ANGLE_SAMPLES)), self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity)), self.UP_or_DOWN() 
+        angle1 = self.get_angle(self.base.body.position,self.box1.body.position)
+        angle2 = self.get_angle(self.box1.body.position,self.box2.body.position)
+        return int(angle1//(360/self.ANGLE_SAMPLES)), self.get_discrete_velocity(self.get_continuos_velocity(self.box1.body.velocity)), self.UP_or_DOWN(self.box1.body.position, self.prev_pos1),\
+            int(angle2//(360/self.ANGLE_SAMPLES)),self.get_discrete_velocity(self.get_continuos_velocity(self.box2.body.velocity)), self.UP_or_DOWN(self.box2.body.position, self.prev_pos2) 
 
     def get_continuos_velocity(self, velocity):
         '''
@@ -364,18 +387,14 @@ class PendulumEnv:
         int
             A discretized velocity
         '''
-        MAX_VEL = 1670
-        #TOT 19
+        MAX_VEL = 700
         discrete_v = min(velocity, MAX_VEL)
-        if  discrete_v <= 120:
-            return int((discrete_v)//30)
-        elif discrete_v <= 420:
-            return int(4 + (discrete_v-120)//60)
-        elif discrete_v <= 920:
-            return int(9 + (discrete_v-420)//100)
-        else:
-            return int(14 + (discrete_v-920)//150)
-
+        if discrete_v <= 10:
+            return int(discrete_v)
+        elif discrete_v <=  100:
+            return int(11 +  (discrete_v-10)//10)
+        elif discrete_v <= MAX_VEL:
+            return int(21 + (discrete_v-100)//20)
     def episode_status(self):
         '''
         Returns the actual status of the current episode. 
@@ -392,24 +411,28 @@ class PendulumEnv:
         '''
         state = self.get_new_state()
         #if the box is the right spot (it's vertical)
-        if state[0] >= (89//(360/self.ANGLE_SAMPLES)) and state[0] <= (91//(360/self.ANGLE_SAMPLES)):
-            self.box.color = (0,255,0)
+        if state[3] >= (89//(360/self.ANGLE_SAMPLES)) and state[3] <= (91//(360/self.ANGLE_SAMPLES)) and state[0] >= (89//(360/self.ANGLE_SAMPLES)) and state[0] <= (91//(360/self.ANGLE_SAMPLES)):
+            self.box1.color = (0,255,0)
             self.frame_count+=1
+
             #print(self.frame_count,10*FPS,FPS)     
             #if (time.time()-self.timer) > 10:
             #second to frame conversion
-            if( self.frame_count > 5*FPS):
+            
+            if( self.frame_count > FPS):
                 return (True, False)
         #box fallen. Truncate
-        elif state[0] >= (269//(360/self.ANGLE_SAMPLES)) and state[0] <= (271//(360/self.ANGLE_SAMPLES)): 
-            self.box.color = (255, 0,0)
+        elif state[0] >= (181//(360/self.ANGLE_SAMPLES)) or state[3] >= (181//(360/self.ANGLE_SAMPLES)):#state[0] >= (269//(360/self.ANGLE_SAMPLES)) and state[0] <= (271//(360/self.ANGLE_SAMPLES)): 
+            self.box1.color = (255, 0,0)
+            self.box2.color = (255, 0,0)
             self.timer = time.time()
             self.frame_count=0
-            return False,(self.tick > self.TICK_LIMIT)
+            return False,True#(self.tick > self.TICK_LIMIT)
         else:
             self.timer = time.time()
             self.frame_count=0
-            self.box.color = (191, 64, 191)
+            self.box1.color = (191, 64, 191)
+            self.box2.color = (191, 64, 191)
         return (False, False) 
 
     def step(self,action,wind=0):
@@ -426,13 +449,15 @@ class PendulumEnv:
         tuple
             a tuple with this format: (reward,new state,done,truncated)
         '''
-        self.prev_pos = self.box.body.position
+        self.prev_pos1 = self.box1.body.position
+        self.prev_pos2 = self.box2.body.position
         self.action = action
         self.base.moveX(action)
-        self.box.body.apply_impulse_at_local_point([wind,0],(0,0)) 
         #TODO:???
+        
         self.space.step(1/FPS)
-        return self.get_reward(), self.get_new_state(), self.episode_status()[0],self.episode_status()[1]
+        episode = self.episode_status()
+        return self.get_reward(), self.get_new_state(), episode[0],episode[1]
  
     def sample_cond(self, i):
         '''
@@ -452,8 +477,8 @@ class PendulumEnv:
     def write_on_log(self):
         with open('log.txt', 'a') as log:
             record = "<Q_TABLE: "+str(self.Q_TABLE_FILE) +", ANGLE_SAMPLES: "+str(self.ANGLE_SAMPLES)+", SPEED_SAMPLES: "+str(self.SPEED_SAMPLES)+", ACTION_NUM: "+str(self.ACTION_NUM)+", EPISODES: "\
-                +str(self.EPISODES) +", START_BASE: "+ str(self.START_BASE) +", START_BOX: "+ str(self.START_BOX) +", LEARNING_RATE: "+ str(self.LEARNING_RATE) +\
-                ", DISCOUNT: "+ str(self.DISCOUNT) + ", MAX_EPSILON: "+str(self.MAX_EPSILON)+ ", MIN_EPSILON: "+str(self.MIN_EPSILON)\
+                +str(self.EPISODES) +", START_BASE: "+ str(self.START_BASE) +", START_BOX: "+ str(self.START_BOX1) +", LEARNING_RATE: "+ str(self.LEARNING_RATE) +\
+                ", DISCOUNT: "+ str(self.DISCOUNT) + ", MAX_EPSILON: "+str(self.MAX_EPSILON)+ ", MIN_EPSILON: "+str(self.MIN_EPSILON) +", DECAY_RATE: "+ str(self.DECAY_RATE)\
                     +", REWARD_ALPHA: " + str(self.alpha) + ", REWARD_BETA: "+ str(self.beta)+">\n"
             log.write(record)
     def train(self):
@@ -466,15 +491,22 @@ class PendulumEnv:
         global ycamera
         cmd_t = 0
         successes = 0
+        max_rew = -100000
+        max_state = (0,0,0,0,0,0)
+        max_act = -100000
+        last_100 = []
         input("\nPress any key to start\n")
         for episode in range(self.EPISODES):
-            theta= np.random.random()*np.pi*2
-        
-        
-            xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
+            
+            #generate the new objects.
             self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-            self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
-            self.string = String(self.base.body, self.box.body)
+            self.box1 = Box(self.START_BOX1[0],self.START_BOX1[1], 50, 50, color=(191, 64, 191))
+            self.box2 = Box(self.START_BOX2[0],self.START_BOX2[1], 50, 50, color=(191, 64, 191))
+            self.string1 = String(self.base.body, self.box1.body)
+            self.string2 = String(self.box1.body, self.box2.body)
+            self.prev_pos1 = self.START_BOX1
+            self.prev_pos2 = self.START_BOX2
+            self.frame_count = 0
             self.tick = 0
             
             done = False
@@ -486,11 +518,14 @@ class PendulumEnv:
             '''
             The state has the format: (angle,velocity,direction)
             '''
-            state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,1)
+
+            angle1 = self.get_angle(self.base.body.position,self.box1.body.position)
+            angle2 = self.get_angle(self.box1.body.position,self.box2.body.position)
+            state = (int(angle1//(360/self.ANGLE_SAMPLES)),0,1, int(angle2//(360/self.ANGLE_SAMPLES)),0,1)
             
-            epsilon = self.get_epsilon(episode)**(1.7)
-            #actualLR = self.get_learning_rate(episode)
-            actualLR=self.LEARNING_RATE#1/(1+episode)**self.LEARNING_RATE
+            epsilon = self.get_epsilon(episode)
+
+            
             if self.sample_cond(episode):
                 input("Last episode")
             line = ''
@@ -512,61 +547,67 @@ class PendulumEnv:
                     if line == 'status':
                         cmd_t = 4
                         print("EPISODE: ", episode)
-                        print("SUCCESS RATE: ", successes/(episode+1))
-                        print("ACTUAL LR: ", actualLR)
-                        print("ACTUAL EPSILON: ", epsilon)
- 
+                        print("SUCCESS RATE: ", np.sum(last_100)/len(last_100))
                 else:
                     cmd_t = 0
                     
             self.timer = time.time()
-
             
-
             #training loop
-            while not done and not truncated:
+            while (not done and not truncated):
                 #check if has to do the best move given the actual table or a random move.
-                if np.random.random() > epsilon:
+                if np.random.random() > epsilon or episode == self.EPISODES -1:
                     #TODO:???? Perchè argmax?
-                    action = np.argmax(self.q_table[state[0],state[1],state[2]])
+                    action = np.argmax(self.q_table[state[0],state[1],state[2], state[3],state[4],state[5]])
                 else:
-                    
                     action = np.random.randint(0, self.ACTION_NUM)
                 #convert the speed from the coded state to the actual uncoded speed
-                speed = (action%(self.ACTION_NUM//2)) * 50
+                speed = (action%(self.ACTION_NUM//2)) * 17
                 
                 if action > (self.ACTION_NUM//2):
                     speed = -speed
 
                 #make a step
                 reward,new_state, done, truncated = self.step(speed)
-
                 #training ended or render requested
                 if self.sample_cond(episode) or render:
                     self.render()
-
-                max_future_q = np.max(self.q_table[new_state[0],new_state[1],new_state[2]])
-                current_q = self.q_table[state[0]][state[1]][state[2]][action]
-
-                new_q = (1-actualLR) * current_q + actualLR * (reward + self.DISCOUNT * max_future_q)
+                #TODO:??? Arrivato a questo punto credo di sapere concettualmente
+                #cosa rappresenta la tabella, ma non come è strutturata bene all'interno.
+                #mi manca l'ultima dimensione(quella che nel save prende la variabile "d")
+                max_future_q = np.max(self.q_table[new_state[0],new_state[1],new_state[2], new_state[3],new_state[4],new_state[5]])
+                current_q = self.q_table[state[0],state[1],state[2], state[3],state[4],state[5]][action]
+                lr = self.LEARNING_RATE #*-episode/self.EPISODES*0.01
+                new_q = (1-lr) * current_q + lr * (reward + self.DISCOUNT * max_future_q) 
+                if reward > max_rew:
+                    max_state = state
+                    max_rew = reward
+                    max_act = action
                 
-                self.q_table[state[0],state[1],state[2]][action] = new_q
+                self.q_table[state[0],state[1],state[2], state[3],state[4],state[5]][action] = new_q
                 state = new_state
+
                 self.tick+=1
-
-               
-
-            if done:
-                successes += 1
-            
+            if len(last_100) < 100:
+                if done: 
+                    last_100.append(1)
+                else:
+                    last_100.append(0)
+            else:
+                if done: 
+                    last_100[episode%100] = 1
+                else:
+                    last_100[episode%100] = 0
             
             #remove the last episode objects, if present.
             space.remove(self.base.shape, self.base.body)
-            space.remove(self.box.shape, self.box.body)
-            space.remove(self.string.shape)
+            space.remove(self.box1.shape, self.box1.body)
+            space.remove(self.box2.shape, self.box2.body)
+            space.remove(self.string1.shape)
+            space.remove(self.string2.shape)
             
 
-        self.save_q_table(self.Q_TABLE_FILE)
+        #self.save_q_table(self.Q_TABLE_FILE)
 
     def save_q_table(self, file):
         '''
@@ -579,14 +620,17 @@ class PendulumEnv:
         '''
         with open(file,'w') as f:
             tosave =[]
-            x,y,z,d = self.q_table.shape
+            x,y,z,a,b,c,d = self.q_table.shape
             for i in range(x):
                 for j in range(y):
                     for q in range(z):
-                        for w in range(d):
-                            tosave.append(self.q_table[i][j][q][w])
+                        for e in range(a):
+                            for h in range(b):
+                                for g in range(c):
+                                    for w in range(d):
+                                        tosave.append(self.q_table[i][j][q][e][h][g][w])
             json.dump(tosave, f)
-        print('Q_TABLE SAVED ON '+ self.Q_TABLE_FILE)
+        print('Q_TABLE SAVED.')
 
     def load_q_table(self, file, shape):
         '''
@@ -606,13 +650,16 @@ class PendulumEnv:
             f=open(file,"r")
             q_list = json.load(f)
             ind = 0
-            x,y,z,d = shape
+            x,y,z,a,b,c,d = self.q_table.shape
             for i in range(x):
                 for j in range(y):
                     for q in range(z):
-                        for w in range(d):
-                            q_table[i][j][q][w] = q_list[ind]
-                            ind += 1
+                        for e in range(a):
+                            for h in range(b):
+                                for g in range(c):
+                                    for w in range(d):
+                                        q_table[i][j][q][e][h][g][w] = q_list[ind]
+                                        ind += 1
             f.close()
             print("[INFO]\t File loaded with success")
         except FileNotFoundError:
@@ -623,25 +670,26 @@ class PendulumEnv:
         '''
         Starts the simulation.
         '''
-
-        theta= np.random.random()*np.pi*2
-        
-        
-        xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
-        self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
-        self.string = String(self.base.body, self.box.body)
+        self.box1 = Box(self.START_BOX1[0],self.START_BOX1[1], 50, 50, color=(191, 64, 191))
+        self.box2 = Box(self.START_BOX2[0],self.START_BOX2[1], 50, 50, color=(191, 64, 191))
+        self.string1 = String(self.base.body, self.box1.body)
+        self.string2 = String(self.box1.body, self.box2.body)
 
         self.q_table = self.load_q_table(self.Q_TABLE_FILE,self.q_table.shape)
-        state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,1)
+        input("START")
+
+       
+        angle1 = self.get_angle(self.base.body.position,self.box1.body.position)
+        angle2 = self.get_angle(self.box1.body.position,self.box2.body.position)
+        state = (int(angle1//(360/self.ANGLE_SAMPLES)),0,0, int(angle2//(360/self.ANGLE_SAMPLES)),0,0)
         truncated = False
 
-        self.string = String(self.base.body, self.box.body)
 
         self.timer = time.time()
         while  not truncated:
-            action = np.argmax(self.q_table[state[0],state[1],state[2]])
-            speed = action%(self.ACTION_NUM//2)*50
+            action = np.argmax(self.q_table[state[0],state[1],state[2], state[3],state[4],state[5]])
+            speed = action%(self.ACTION_NUM//2)*17
             if action > (self.ACTION_NUM//2):
                 speed = -speed
             self.wind.blow()
@@ -657,6 +705,7 @@ class PendulumEnv:
         '''
         Render the environment in his current state.
         '''
+        #input("Next frame...")
         global xcamera
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -666,18 +715,38 @@ class PendulumEnv:
         display.fill((255,255,255))
         display.blit(txt, (30, 15))
     
-        txt = pygame.font.SysFont("Arial", 15).render("Wind: "+str(self.wind.wind)[:7], True, (0,0,0))
-        display.blit(txt, (30, 30))
-
-        txt = pygame.font.SysFont("Arial", 15).render("Reward: "+str(self.get_reward())[:5], True, (0,0,0))
+        txt = pygame.font.SysFont("Arial", 15).render("Reward: "+str(self.get_reward()), True, (0,0,0))
         display.blit(txt, (30, 45))
-
-        txt = pygame.font.SysFont("Arial", 15).render("Cube speed: "+str(self.get_discrete_velocity(self.get_continuos_velocity(self.box.body.velocity))), True, (0,0,0))
+        state = self.get_new_state()
+        
+        txt = pygame.font.SysFont("Arial", 15).render("Cube1 angle: "+str(state[0]), True, (0,0,0))
         display.blit(txt, (30, 60))
 
+        txt = pygame.font.SysFont("Arial", 15).render("Cube1 speed: "+str(state[1]), True, (0,0,0))
+        display.blit(txt, (30, 75))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Direction1: "+str(state[2]), True, (0,0,0))
+        display.blit(txt, (30, 90))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Cube2 angle: "+str(state[3]), True, (0,0,0))
+        display.blit(txt, (30, 105))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Cube2 speed: "+str(state[4]), True, (0,0,0))
+        display.blit(txt, (30, 120))
+
+        txt = pygame.font.SysFont("Arial", 15).render("Direction2: "+str(state[5]), True, (0,0,0))
+        display.blit(txt, (30, 135))
+        
+        txt = pygame.font.SysFont("Arial", 15).render("INitial state: "+str(np.argmax(self.q_table[int(90//(360/self.ANGLE_SAMPLES)),0,1,int(90//(360/self.ANGLE_SAMPLES)),0,1])), True, (0,0,0))
+        display.blit(txt, (30, 150))
+
+        
+
         self.base.draw()
-        self.box.draw()
-        self.string.draw()
+        self.box1.draw()
+        self.box2.draw()
+        self.string1.draw()
+        self.string2.draw()
         if self.base.body.position[0] -(xcamera+600)> 600:
             xcamera += 1200
         if (xcamera+600)- self.base.body.position[0]> 600:
@@ -693,11 +762,11 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test2.json"
-    env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
-                      Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=25000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
-    env.set_reward_param(0.5, 0.5)
+    Q_TABLE_FILE ="2pend.2.json"
+    env = PendulumEnv(LEARNING_RATE = 0.7, DISCOUNT=0.996, MAX_EPSILON=1.0, MIN_EPSILON=0.005, DECAY_RATE=0.005, 
+                      Q_TABLE_DIM = (40, 52, 2, 40,52,2,80),EPISODES=20000,START_BOX2=(585, 105),START_BOX1=(600, 300), START_BASE=(600, 500),
+                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=True)
+    env.set_reward_param(0.2, 0.8)
     pygame.display.set_caption(Q_TABLE_FILE)
     env.execEnv()
     
