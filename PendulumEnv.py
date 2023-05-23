@@ -693,7 +693,7 @@ Instruction for use:
 
 
 if __name__ == "__main__":
-    Q_TABLE_FILE ="test2.json"
+    Q_TABLE_FILE ="working.json"
     env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
                       Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=25000,START_BOX=(600, 500), START_BASE=(600, 300),
                       space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
