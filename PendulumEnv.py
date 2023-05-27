@@ -624,9 +624,9 @@ class PendulumEnv:
         Starts the simulation.
         '''
 
-        theta= np.random.random()*np.pi*2
+        theta= np.random.random()*np.pi*2 
         
-        
+        theta = 1.57
         xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True)
         self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191))
@@ -634,6 +634,8 @@ class PendulumEnv:
 
         self.q_table = self.load_q_table(self.Q_TABLE_FILE,self.q_table.shape)
         state = (int(self.get_angle()//(360/self.ANGLE_SAMPLES)),0,1)
+
+        print("[INFO]\t Starting at angle:",self.get_angle())
         truncated = False
 
         self.string = String(self.base.body, self.box.body)
