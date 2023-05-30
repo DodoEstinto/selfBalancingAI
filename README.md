@@ -12,7 +12,7 @@
   In any case is necessary specify the file name which will be used to save the final table, in case of training execution, and to simulate an existing table, in case of simulation.
   It's possible to set the Environment parameters by changing the values in the PendulumEnv initialization (main.py).
   set_reward_param function could be use to change the reward weight (alpha and beta).
-  To start the program just execute the following program:
+  To start the program just execute the following command:
   
   ```shell
   python main.py
