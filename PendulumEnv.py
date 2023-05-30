@@ -552,7 +552,6 @@ class PendulumEnv:
         '''
         theta= np.random.random()*np.pi*2 
         
-        theta = 1.57
         xOff,yOff= np.cos(theta)*200,np.sin(theta)*200
         self.base= Box(self.START_BASE[0],self.START_BASE[1], 100, 10, static=True, space=space)
         self.box = Box(self.START_BASE[0]+xOff,self.START_BASE[1]+yOff, 50, 50, color=(191, 64, 191),space=space)
@@ -616,18 +615,3 @@ class PendulumEnv:
         pygame.display.update()
         clock.tick(FPS)
 
-"""
-Instruction for use:
-    - To execute for training set is_train to True in the initialization of the environment, False for simulate;
-    - In any case is necessary specify the file name on which save the table (variable Q_TABLE_FILE);
-    - To set reward parameters (alpha, beta) use the set_reward_param function 
-"""
-if __name__ == "__main__":
-    Q_TABLE_FILE ="Tests/working2.json"
-    env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
-                      Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=25000,START_BOX=(600, 500), START_BASE=(600, 300),
-                      space=space,Q_TABLE_FILE=Q_TABLE_FILE, is_train=False)
-    env.set_reward_param(0.5, 0.5)
-    pygame.display.set_caption(Q_TABLE_FILE)
-    env.execEnv()
-    
