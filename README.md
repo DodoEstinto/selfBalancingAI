@@ -5,7 +5,7 @@
   - Grpahics.py contains all the classes for the graphic visualizzation;
   - PendulumEnv.py contains the class for the Environment training and simiulation;
   - cmd.txt is the file thanks to which the user can give command to the program;
-  - log.txt is the log file of the trainig session that were executed;
+  - log.txt is the log file of the trainig sessions that were executed;
   - main.py is the file to execute to start the program;
 ## Instructions for use
   To execute a training session set is_train to True in the main.py file, False for simulate a table.
