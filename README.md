@@ -14,6 +14,6 @@
   set_reward_param function could be use to change the reward weight (alpha and beta).
   To start the program just execute the following program:
   
-    ```shell
-    python main.py
-    ```
+  ```shell
+  python main.py
+  ```
