@@ -114,7 +114,7 @@ class PendulumEnv:
         self.space.gravity = (0, 1000)
         self.space.damping=0.9
         self.action = 0
-        self.wind=Wind(base_force=0,force_variance=1,changeability=0.008)
+        self.wind=Wind(base_force=0,force_variance=1000,changeability=0.008)
         self.tick=0
         self.is_train = is_train
         self.set_reward_param()
@@ -572,7 +572,9 @@ class PendulumEnv:
             speed = action%(self.ACTION_NUM//2)*50
             if action > (self.ACTION_NUM//2):
                 speed = -speed
-            self.wind.blow()
+            if state[0] >= (89//(360/self.ANGLE_SAMPLES)) and state[0] <= (91//(360/self.ANGLE_SAMPLES)):
+                self.wind.blow()
+                self.box.body.apply_impulse_at_local_point([self.wind.wind,0],(0,0)) 
             _,new_state, _, truncated = self.step(speed)
             self.render()
             state = new_state
