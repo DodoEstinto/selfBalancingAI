@@ -8,7 +8,7 @@ Instruction for use:
     - To set reward parameters (alpha, beta) use the set_reward_param function 
 """
 if __name__ == "__main__":
-    Q_TABLE_FILE ="Tests/table2.json"
+    Q_TABLE_FILE ="Tests/table1.json"
     is_train = False
     env = PendulumEnv(LEARNING_RATE = 0.1, DISCOUNT=0.95, MAX_EPSILON=1.0, MIN_EPSILON=0.05, 
                       Q_TABLE_DIM = (40, 20, 2, 20),EPISODES=25000,START_BOX=(600, 500), START_BASE=(600, 300),

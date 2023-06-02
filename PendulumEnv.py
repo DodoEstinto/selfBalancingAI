@@ -55,6 +55,13 @@ class PendulumEnv:
             Load the qTable from a saved file.
         render():
             Render the environment in his current state.
+        set_reward_param(alpha,beta):
+            Set the weight of each component of the reward function.
+        write_on_log():
+            Write on log.txt the parameters of the current training session
+        
+        
+
     '''
     def __init__(self, LEARNING_RATE, DISCOUNT, MAX_EPSILON, MIN_EPSILON, Q_TABLE_DIM,EPISODES, START_BASE, START_BOX,space,Q_TABLE_FILE, TICK_LIMIT = 800, is_train = False):
         '''
@@ -114,7 +121,7 @@ class PendulumEnv:
         self.space.gravity = (0, 1000)
         self.space.damping=0.9
         self.action = 0
-        self.wind=Wind(base_force=0,force_variance=1000,changeability=0.008)
+        self.wind=Wind(base_force=0,force_variance=300,changeability=0.008)
         self.tick=0
         self.is_train = is_train
         self.set_reward_param()
@@ -141,7 +148,7 @@ class PendulumEnv:
         
         PARAMETERS
         ----------
-        alpga: float
+        alpha: float
         beta: float
         '''
         self.alpha = alpha
@@ -580,6 +587,9 @@ class PendulumEnv:
             state = new_state
             
     def execEnv(self):
+        '''
+        Based on the attribute is_train, starts the training or the simulation.
+        '''
         if self.is_train:
             self.train()
         else:
