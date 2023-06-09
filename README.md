@@ -1,4 +1,4 @@
-# Self Blancing AI
+# Self Balancing AI
 ## Project Structure
   The code is structured as follow:
   - Tests folder contains some results of the experiments such as plot of the functions, recording of some interesting results and some tables;
